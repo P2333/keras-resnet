@@ -130,12 +130,13 @@ def resnet_layer(inputs,
     # Returns
         x (tensor): tensor as input to the next layer
     """
-    conv = Conv2D(num_filters,
-                  kernel_size=kernel_size,
-                  strides=strides,
-                  padding='same',
-                  kernel_initializer='he_normal',
-                  kernel_regularizer=l2(1e-4))
+    conv = Conv2D(
+        num_filters,
+        kernel_size=kernel_size,
+        strides=strides,
+        padding='same',
+        kernel_initializer='he_normal',
+        kernel_regularizer=l2(1e-4))
 
     x = inputs
     if conv_first:
@@ -192,21 +193,18 @@ def resnet_v1(input_shape, depth, num_classes=10):
             strides = 1
             if stack > 0 and res_block == 0:  # first layer but not first stack
                 strides = 2  # downsample
-            y = resnet_layer(inputs=x,
-                             num_filters=num_filters,
-                             strides=strides)
-            y = resnet_layer(inputs=y,
-                             num_filters=num_filters,
-                             activation=None)
+            y = resnet_layer(inputs=x, num_filters=num_filters, strides=strides)
+            y = resnet_layer(inputs=y, num_filters=num_filters, activation=None)
             if stack > 0 and res_block == 0:  # first layer but not first stack
                 # linear projection residual shortcut connection to match
                 # changed dims
-                x = resnet_layer(inputs=x,
-                                 num_filters=num_filters,
-                                 kernel_size=1,
-                                 strides=strides,
-                                 activation=None,
-                                 batch_normalization=False)
+                x = resnet_layer(
+                    inputs=x,
+                    num_filters=num_filters,
+                    kernel_size=1,
+                    strides=strides,
+                    activation=None,
+                    batch_normalization=False)
             x = keras.layers.add([x, y])
             x = Activation('relu')(x)
         num_filters *= 2
@@ -215,9 +213,8 @@ def resnet_v1(input_shape, depth, num_classes=10):
     # v1 does not use BN after last shortcut connection-ReLU
     x = AveragePooling2D(pool_size=8)(x)
     y = Flatten()(x)
-    outputs = Dense(num_classes,
-                    activation='softmax',
-                    kernel_initializer='he_normal')(y)
+    outputs = Dense(
+        num_classes, activation='softmax', kernel_initializer='he_normal')(y)
 
     # Instantiate model.
     model = Model(inputs=inputs, outputs=outputs)
@@ -254,9 +251,7 @@ def resnet_v2(input_shape, depth, num_classes=10):
 
     inputs = Input(shape=input_shape)
     # v2 performs Conv2D with BN-ReLU on input before splitting into 2 paths
-    x = resnet_layer(inputs=inputs,
-                     num_filters=num_filters_in,
-                     conv_first=True)
+    x = resnet_layer(inputs=inputs, num_filters=num_filters_in, conv_first=True)
 
     # Instantiate the stack of residual units
     for stage in range(3):
@@ -272,32 +267,34 @@ def resnet_v2(input_shape, depth, num_classes=10):
             else:
                 num_filters_out = num_filters_in * 2
                 if res_block == 0:  # first layer but not first stage
-                    strides = 2    # downsample
+                    strides = 2  # downsample
 
             # bottleneck residual unit
-            y = resnet_layer(inputs=x,
-                             num_filters=num_filters_in,
-                             kernel_size=1,
-                             strides=strides,
-                             activation=activation,
-                             batch_normalization=batch_normalization,
-                             conv_first=False)
-            y = resnet_layer(inputs=y,
-                             num_filters=num_filters_in,
-                             conv_first=False)
-            y = resnet_layer(inputs=y,
-                             num_filters=num_filters_out,
-                             kernel_size=1,
-                             conv_first=False)
+            y = resnet_layer(
+                inputs=x,
+                num_filters=num_filters_in,
+                kernel_size=1,
+                strides=strides,
+                activation=activation,
+                batch_normalization=batch_normalization,
+                conv_first=False)
+            y = resnet_layer(
+                inputs=y, num_filters=num_filters_in, conv_first=False)
+            y = resnet_layer(
+                inputs=y,
+                num_filters=num_filters_out,
+                kernel_size=1,
+                conv_first=False)
             if res_block == 0:
                 # linear projection residual shortcut connection to match
                 # changed dims
-                x = resnet_layer(inputs=x,
-                                 num_filters=num_filters_out,
-                                 kernel_size=1,
-                                 strides=strides,
-                                 activation=None,
-                                 batch_normalization=False)
+                x = resnet_layer(
+                    inputs=x,
+                    num_filters=num_filters_out,
+                    kernel_size=1,
+                    strides=strides,
+                    activation=None,
+                    batch_normalization=False)
             x = keras.layers.add([x, y])
 
         num_filters_in = num_filters_out
@@ -308,17 +305,18 @@ def resnet_v2(input_shape, depth, num_classes=10):
     x = Activation('relu')(x)
     x = AveragePooling2D(pool_size=8)(x)
     y = Flatten()(x)
-    outputs = Dense(num_classes,
-                    activation='softmax',
-                    kernel_initializer='he_normal')(y)
+    outputs = Dense(
+        num_classes, activation='softmax', kernel_initializer='he_normal')(y)
 
     # Instantiate model.
     model = Model(inputs=inputs, outputs=outputs)
     return model, inputs, outputs
 
+
 def Entropy(input):
     #input shape is batch_size X num_class
-    return tf.reduce_sum(-tf.multiply(input, tf.log(input)),axis=-1)
+    return tf.reduce_sum(-tf.multiply(input, tf.log(input)), axis=-1)
+
 
 def Loss_0(y_true, y_pred, num_model=2):
     Ensemble = 0
@@ -328,7 +326,9 @@ def Loss_0(y_true, y_pred, num_model=2):
         Ensemble = Ensemble + y_pred[i]
         JSD = JSD - Entropy(y_pred[i]) / num_model
     JSD = JSD + Entropy(Ensemble / num_model)
-    return keras.losses.categorical_crossentropy(y_true[0], y_pred[0]) - lamda * JSD
+    return keras.losses.categorical_crossentropy(y_true[0],
+                                                 y_pred[0]) - lamda * JSD
+
 
 def Loss_1(y_true, y_pred, num_model=2):
     Ensemble = 0
@@ -338,25 +338,26 @@ def Loss_1(y_true, y_pred, num_model=2):
         Ensemble = Ensemble + y_pred[i]
         JSD = JSD - Entropy(y_pred[i]) / num_model
     JSD = JSD + Entropy(Ensemble / num_model)
-    return keras.losses.categorical_crossentropy(y_true[1], y_pred[1]) - lamda * JSD
-
+    return keras.losses.categorical_crossentropy(y_true[1],
+                                                 y_pred[1]) - lamda * JSD
 
 
 if version == 2:
-    model_0,in_0,out_0 = resnet_v2(input_shape=input_shape, depth=depth)
-    model_1,in_1,out_1 = resnet_v2(input_shape=input_shape, depth=depth)
+    model_0, in_0, out_0 = resnet_v2(input_shape=input_shape, depth=depth)
+    model_1, in_1, out_1 = resnet_v2(input_shape=input_shape, depth=depth)
     #model_2 = resnet_v2(input_shape=input_shape, depth=depth)
 
 else:
-    model_0,in_0,out_0 = resnet_v1(input_shape=input_shape, depth=depth)
-    model_1,in_1,out_1 = resnet_v1(input_shape=input_shape, depth=depth)
+    model_0, in_0, out_0 = resnet_v1(input_shape=input_shape, depth=depth)
+    model_1, in_1, out_1 = resnet_v1(input_shape=input_shape, depth=depth)
     #model_2 = resnet_v1(input_shape=input_shape, depth=depth)
 
-model = Model(input = [in_0, in_1], output = [out_0, out_1])
+model = Model(input=[in_0, in_1], output=[out_0, out_1])
 
-model.compile(loss=[Loss_0, Loss_1],
-              optimizer=Adam(lr=lr_schedule(0)),
-              metrics=['accuracy'])
+model.compile(
+    loss=[Loss_0, Loss_1],
+    optimizer=Adam(lr=lr_schedule(0)),
+    metrics=['accuracy'])
 model.summary()
 print(model_type)
 
@@ -368,29 +369,26 @@ if not os.path.isdir(save_dir):
 filepath = os.path.join(save_dir, model_name)
 
 # Prepare callbacks for model saving and for learning rate adjustment.
-checkpoint = ModelCheckpoint(filepath=filepath,
-                             monitor='val_acc',
-                             verbose=1,
-                             save_best_only=True)
+checkpoint = ModelCheckpoint(
+    filepath=filepath, monitor='val_acc', verbose=1, save_best_only=True)
 
 lr_scheduler = LearningRateScheduler(lr_schedule)
 
-lr_reducer = ReduceLROnPlateau(factor=np.sqrt(0.1),
-                               cooldown=0,
-                               patience=5,
-                               min_lr=0.5e-6)
+lr_reducer = ReduceLROnPlateau(
+    factor=np.sqrt(0.1), cooldown=0, patience=5, min_lr=0.5e-6)
 
 callbacks = [checkpoint, lr_reducer, lr_scheduler]
 
 # Run training, with or without data augmentation.
 if not data_augmentation:
     print('Not using data augmentation.')
-    model.fit([x_train, x_train], [y_train, y_train],
-              batch_size=batch_size,
-              epochs=epochs,
-              validation_data=([x_test, x_test], [y_test, y_test]),
-              shuffle=True,
-              callbacks=callbacks)
+    model.fit(
+        [x_train, x_train], [y_train, y_train],
+        batch_size=batch_size,
+        epochs=epochs,
+        validation_data=([x_test, x_test], [y_test, y_test]),
+        shuffle=True,
+        callbacks=callbacks)
 else:
     print('Using real-time data augmentation.')
     # This will do preprocessing and realtime data augmentation:
@@ -441,10 +439,13 @@ else:
     datagen.fit(x_train)
 
     # Fit the model on the batches generated by datagen.flow().
-    model.fit_generator(datagen.flow([x_train, x_train], y_train, batch_size=batch_size),
-                        validation_data=([x_test, x_test], [y_test, y_test]),
-                        epochs=epochs, verbose=1, workers=4,
-                        callbacks=callbacks)
+    model.fit_generator(
+        datagen.flow([x_train, x_train], y_train, batch_size=batch_size),
+        validation_data=([x_test, x_test], [y_test, y_test]),
+        epochs=epochs,
+        verbose=1,
+        workers=4,
+        callbacks=callbacks)
 
 # Score trained model.
 scores = model.evaluate([x_test, x_test], [y_test, y_test], verbose=1)
