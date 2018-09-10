@@ -23,12 +23,17 @@ import tensorflow as tf
 import numpy as np
 import os
 
+FLAGS = tf.app.flags.FLAGS
+tf.app.flags.DEFINE_float('lamda', 0.01, "lamda for JSD")
+
+
+
 # Training parameters
 batch_size = 32  # orig paper trained all networks with batch_size=128
 epochs = 200
 data_augmentation = False
 num_classes = 10
-lamda = 0.01
+
 
 # Subtracting pixel mean improves accuracy
 subtract_pixel_mean = True
@@ -317,8 +322,7 @@ def Entropy(input):
     #input shape is batch_size X num_class
     return tf.reduce_sum(-tf.multiply(input, tf.log(input)), axis=-1)
 
-
-def Loss_0(y_true, y_pred, num_model=2):
+def JS_divergence(y_true, y_pred, num_model=2):
     Ensemble = 0
     JSD = 0
     num_model = num_model
@@ -326,20 +330,17 @@ def Loss_0(y_true, y_pred, num_model=2):
         Ensemble = Ensemble + y_pred[i]
         JSD = JSD - Entropy(y_pred[i]) / num_model
     JSD = JSD + Entropy(Ensemble / num_model)
+    return JSD
+
+
+def Loss_0(y_true, y_pred, num_model=2):
     return keras.losses.categorical_crossentropy(y_true[0],
-                                                 y_pred[0]) - lamda * JSD
+                                                 y_pred[0]) - FLAGS.lamda * JS_divergence(y_true, y_pred, num_model)
 
 
 def Loss_1(y_true, y_pred, num_model=2):
-    Ensemble = 0
-    JSD = 0
-    num_model = num_model
-    for i in range(num_model):
-        Ensemble = Ensemble + y_pred[i]
-        JSD = JSD - Entropy(y_pred[i]) / num_model
-    JSD = JSD + Entropy(Ensemble / num_model)
     return keras.losses.categorical_crossentropy(y_true[1],
-                                                 y_pred[1]) - lamda * JSD
+                                                 y_pred[1]) - FLAGS.lamda * JS_divergence(y_true, y_pred, num_model)
 
 
 if version == 2:
@@ -357,12 +358,12 @@ model = Model(input=[in_0, in_1], output=[out_0, out_1])
 model.compile(
     loss=[Loss_0, Loss_1],
     optimizer=Adam(lr=lr_schedule(0)),
-    metrics=['accuracy'])
+    metrics=['accuracy', JS_divergence])
 model.summary()
 print(model_type)
 
 # Prepare model model saving directory.
-save_dir = os.path.join(os.getcwd(), 'saved_models')
+save_dir = os.path.join(os.getcwd(), 'saved_models_lamda'+str(FLAGS.lamda))
 model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
@@ -448,6 +449,6 @@ else:
         callbacks=callbacks)
 
 # Score trained model.
-scores = model.evaluate([x_test, x_test], [y_test, y_test], verbose=1)
-print('Test loss:', scores[0])
-print('Test accuracy:', scores[1])
+#scores = model.evaluate([x_test, x_test], [y_test, y_test], verbose=1)
+#print('Test loss:', scores[0])
+#print('Test accuracy:', scores[1])
