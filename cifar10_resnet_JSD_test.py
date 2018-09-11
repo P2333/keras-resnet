@@ -323,8 +323,8 @@ def Entropy(input):
     return tf.reduce_sum(-tf.multiply(input, tf.log(input)), axis=-1)
 
 def JS_divergence(y_true, y_pred, num_model=2, batch_size=batch_size):
-    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=0)
-    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=0)
+    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=-1)
+    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=-1)
     Ensemble = Entropy((y_p_1 + y_p_2) / num_model)
     JSD = - (Entropy(y_p_1) + Entropy(y_p_2)) / num_model
     return Ensemble + JSD
@@ -333,9 +333,16 @@ def JS_divergence_metric(y_true, y_pred, num_model=2, batch_size=batch_size):
     JSD = JS_divergence(y_true, y_pred, num_model=num_model, batch_size=batch_size)
     return K.mean(JSD)
 
+def acc_metric(y_true, y_pred, num_model=2, batch_size=batch_size):
+    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=-1)
+    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=-1)
+    acc1 = keras.metrics.categorical_accuracy(y_t_1, y_p_1)
+    acc2 = keras.metrics.categorical_accuracy(y_t_2, y_p_2)
+    return (acc1 + acc2)/2
+
 def Loss_withJSD(y_true, y_pred, num_model=2):
-    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=0)
-    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=0)
+    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=-1)
+    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=-1)
     CE_1 = keras.losses.categorical_crossentropy(y_t_1, y_p_1)
     CE_2 = keras.losses.categorical_crossentropy(y_t_2, y_p_2)
     JSD = JS_divergence(y_true, y_pred, num_model)
@@ -366,13 +373,13 @@ if int(FLAGS.lamda) == 0:
     model.compile(
     loss='categorical_crossentropy',
     optimizer=Adam(lr=lr_schedule(0)),
-    metrics=['accuracy', JS_divergence_metric])
+    metrics=[acc_metric, JS_divergence_metric])
 else:
     print('Have JSD term')
     model.compile(
         loss=Loss_withJSD,
         optimizer=Adam(lr=lr_schedule(0)),
-        metrics=['accuracy', JS_divergence_metric])
+        metrics=[acc_metric, JS_divergence_metric])
 #model.summary()
 print(model_type)
 
