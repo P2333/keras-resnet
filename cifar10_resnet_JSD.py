@@ -31,7 +31,7 @@ tf.app.flags.DEFINE_float('lamda', 0.01, "lamda for JSD")
 # Training parameters
 batch_size = 32  # orig paper trained all networks with batch_size=128
 epochs = 200
-data_augmentation = True
+data_augmentation = False
 num_classes = 10
 
 
@@ -366,13 +366,21 @@ else:
     model_1, in_1, out_1 = resnet_v1(input=input, depth=depth)
     #model_2 = resnet_v1(input_shape=input_shape, depth=depth)
 
-model = Model(input=input, output=[out_0, out_1])
+model = Model(input=[input], output=[out_0, out_1])
 
-model.compile(
-    loss=[Loss_0, Loss_1],
+if int(FLAGS.lamda) == 0:
+    print('No JSD term')
+    model.compile(
+    loss=['categorical_crossentropy', 'categorical_crossentropy'],
     optimizer=Adam(lr=lr_schedule(0)),
     metrics=['accuracy', JS_divergence])
-model.summary()
+else:
+    print('Have JSD term')
+    model.compile(
+        loss=[Loss_0, Loss_1],
+        optimizer=Adam(lr=lr_schedule(0)),
+        metrics=['accuracy', JS_divergence])
+#model.summary()
 print(model_type)
 
 # Prepare model model saving directory.
@@ -384,7 +392,7 @@ filepath = os.path.join(save_dir, model_name)
 
 # Prepare callbacks for model saving and for learning rate adjustment.
 checkpoint = ModelCheckpoint(
-    filepath=filepath, monitor='val_acc', verbose=1, save_best_only=True)
+    filepath=filepath, monitor='val_acc', verbose=2, save_best_only=True)
 
 lr_scheduler = LearningRateScheduler(lr_schedule)
 
@@ -402,6 +410,7 @@ if not data_augmentation:
         epochs=epochs,
         validation_data=(x_test, [y_test, y_test]),
         shuffle=True,
+        verbose=2,
         callbacks=callbacks)
 else:
     print('Using real-time data augmentation.')
@@ -457,7 +466,7 @@ else:
         generate_data_generator(datagen, x_train, y_train),
         validation_data=(x_test, [y_test, y_test]),
         epochs=epochs,
-        verbose=1,
+        verbose=2,
         workers=4,
         steps_per_epoch=int(x_train.shape[0]/batch_size),
         callbacks=callbacks)
