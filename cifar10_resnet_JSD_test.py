@@ -25,13 +25,13 @@ import os
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_float('lamda', 0.01, "lamda for JSD")
+tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
 
 
 
 # Training parameters
 batch_size = 32  # orig paper trained all networks with batch_size=128
 epochs = 200
-data_augmentation = False
 num_classes = 10
 
 
@@ -384,7 +384,7 @@ else:
 print(model_type)
 
 # Prepare model model saving directory.
-save_dir = os.path.join(os.getcwd(), 'saved_models_lamda'+str(FLAGS.lamda))
+save_dir = os.path.join(os.getcwd(), 'saved_models_lamda'+str(FLAGS.lamda)+'_'+str(FLAGS.augmentation))
 model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
@@ -409,7 +409,7 @@ y_test_2 = np.concatenate([y_test, y_test], axis=-1)
 
 
 # Run training, with or without data augmentation.
-if not data_augmentation:
+if not FLAGS.augmentation:
     print('Not using data augmentation.')
     model.fit(
         x_train, y_train_2,
@@ -417,7 +417,7 @@ if not data_augmentation:
         epochs=epochs,
         validation_data=(x_test, y_test_2),
         shuffle=True,
-        verbose=1,
+        verbose=2,
         callbacks=callbacks)
 else:
     print('Using real-time data augmentation.')
