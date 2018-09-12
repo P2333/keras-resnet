@@ -33,6 +33,7 @@ tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
 batch_size = 32  # orig paper trained all networks with batch_size=128
 epochs = 200
 num_classes = 10
+log_offset = 1e-20
 
 
 # Subtracting pixel mean improves accuracy
@@ -320,7 +321,7 @@ def resnet_v2(input, depth, num_classes=10):
 
 def Entropy(input):
     #input shape is batch_size X num_class
-    return tf.reduce_sum(-tf.multiply(input, tf.log(input)), axis=-1)
+    return tf.reduce_sum(-tf.multiply(input, tf.log(input + log_offset)), axis=-1)
 
 def JS_divergence(y_true, y_pred, num_model=2, batch_size=batch_size):
     y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=-1)
