@@ -19,14 +19,21 @@ from keras.regularizers import l2
 from keras import backend as K
 from keras.models import Model
 from keras.datasets import cifar10
+
+import tensorflow as tf
 import numpy as np
 import os
+
+FLAGS = tf.app.flags.FLAGS
+tf.app.flags.DEFINE_float('label_smooth', 0.0, "label smoothing")
+tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
+
 
 # Training parameters
 batch_size = 32  # orig paper trained all networks with batch_size=128
 epochs = 200
-data_augmentation = False
 num_classes = 10
+log_offset = 1e-20
 
 # Subtracting pixel mean improves accuracy
 subtract_pixel_mean = True
@@ -82,8 +89,11 @@ print(x_test.shape[0], 'test samples')
 print('y_train shape:', y_train.shape)
 
 # Convert class vectors to binary class matrices.
-y_train = keras.utils.to_categorical(y_train, num_classes)
+y_train = keras.utils.to_categorical(y_train, num_classes) # 50000*10
 y_test = keras.utils.to_categorical(y_test, num_classes)
+scale = FLAGS.label_smooth / (num_classes - 1 - num_classes * FLAGS.label_smooth)
+y_train = (scale * np.ones(y_train.shape) + y_train) / (1 + num_classes * scale)
+y_test = (scale * np.ones(y_test.shape) + y_test) / (1 + num_classes * scale)
 
 
 def lr_schedule(epoch):
@@ -315,6 +325,10 @@ def resnet_v2(input_shape, depth, num_classes=10):
     return model
 
 
+def Entropy_metric(y_true, y_pred):
+    #input shape is batch_size X num_class
+    return K.mean(tf.reduce_sum(-tf.multiply(y_pred, tf.log(y_pred + log_offset)), axis=-1))
+
 if version == 2:
     model = resnet_v2(input_shape=input_shape, depth=depth)
 else:
@@ -322,12 +336,12 @@ else:
 
 model.compile(loss='categorical_crossentropy',
               optimizer=Adam(lr=lr_schedule(0)),
-              metrics=['accuracy'])
-model.summary()
+              metrics=['accuracy', Entropy_metric])
+#model.summary()
 print(model_type)
 
 # Prepare model model saving directory.
-save_dir = os.path.join(os.getcwd(), 'saved_models')
+save_dir = os.path.join(os.getcwd(), 'Singe_saved_models_labelsmooth'+str(FLAGS.label_smooth)+'_'+str(FLAGS.augmentation))
 model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
@@ -349,7 +363,7 @@ lr_reducer = ReduceLROnPlateau(factor=np.sqrt(0.1),
 callbacks = [checkpoint, lr_reducer, lr_scheduler]
 
 # Run training, with or without data augmentation.
-if not data_augmentation:
+if not FLAGS.augmentation:
     print('Not using data augmentation.')
     model.fit(x_train, y_train,
               batch_size=batch_size,
