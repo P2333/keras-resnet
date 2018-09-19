@@ -25,14 +25,15 @@ import os
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_float('lamda', 0.01, "lamda for JSD")
+tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
 
 
 
 # Training parameters
 batch_size = 32  # orig paper trained all networks with batch_size=128
 epochs = 200
-data_augmentation = False
 num_classes = 10
+log_offset = 1e-20
 
 
 # Subtracting pixel mean improves accuracy
@@ -317,74 +318,74 @@ def resnet_v2(input, depth, num_classes=10):
     model = Model(inputs=inputs, outputs=outputs)
     return model, inputs, outputs
 
-def generate_data_generator(generator, X, Y, batch_size=batch_size):
-    gen = generator.flow(X, Y, batch_size=batch_size)
-    while True:
-            Xi = gen.next()[0]
-            Yi = gen.next()[1]
-            if Xi.shape[0]!=batch_size:
-                gen = generator.flow(X, Y, batch_size=batch_size)
-                Xi = gen.next()[0]
-                Yi = gen.next()[1]
-            yield Xi, [Yi, Yi]
-
 
 def Entropy(input):
     #input shape is batch_size X num_class
-    return tf.reduce_sum(-tf.multiply(input, tf.log(input)), axis=-1)
+    return tf.reduce_sum(-tf.multiply(input, tf.log(input + log_offset)), axis=-1)
 
-def JS_divergence(y_true, y_pred, num_model=2):
-    Ensemble = 0
-    JSD = 0
-    num_model = num_model
-    for i in range(num_model):
-        Ensemble = Ensemble + y_pred[i]
-        JSD = JSD - Entropy(y_pred[i]) / num_model
-    JSD = JSD + Entropy(Ensemble / num_model)
-    return JSD
+def JS_divergence(y_true, y_pred, num_model=2, batch_size=batch_size):
+    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=-1)
+    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=-1)
+    Ensemble = Entropy((y_p_1 + y_p_2) / num_model)
+    JSD = - (Entropy(y_p_1) + Entropy(y_p_2)) / num_model
+    return Ensemble + JSD
+
+def JS_divergence_metric(y_true, y_pred, num_model=2, batch_size=batch_size):
+    JSD = JS_divergence(y_true, y_pred, num_model=num_model, batch_size=batch_size)
+    return K.mean(JSD)
+
+def acc_metric(y_true, y_pred, num_model=2, batch_size=batch_size):
+    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=-1)
+    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=-1)
+    acc1 = keras.metrics.categorical_accuracy(y_t_1, y_p_1)
+    acc2 = keras.metrics.categorical_accuracy(y_t_2, y_p_2)
+    return (acc1 + acc2)/2
+
+def Loss_withJSD(y_true, y_pred, num_model=2):
+    y_p_1, y_p_2 = tf.split(y_pred, num_model, axis=-1)
+    y_t_1, y_t_2 = tf.split(y_true, num_model, axis=-1)
+    CE_1 = keras.losses.categorical_crossentropy(y_t_1, y_p_1)
+    CE_2 = keras.losses.categorical_crossentropy(y_t_2, y_p_2)
+    JSD = JS_divergence(y_true, y_pred, num_model)
+    return CE_1 + CE_2 - FLAGS.lamda * JSD
 
 
-def Loss_0(y_true, y_pred, num_model=2):
-    return keras.losses.categorical_crossentropy(y_true[0],
-                                                 y_pred[0]) - FLAGS.lamda * JS_divergence(y_true, y_pred, num_model)
 
 
-def Loss_1(y_true, y_pred, num_model=2):
-    return keras.losses.categorical_crossentropy(y_true[1],
-                                                 y_pred[1]) - FLAGS.lamda * JS_divergence(y_true, y_pred, num_model)
-
-
-input = Input(shape=input_shape)
+model_input = Input(shape=input_shape)
 
 if version == 2:
-    model_0, in_0, out_0 = resnet_v2(input=input, depth=depth)
-    model_1, in_1, out_1 = resnet_v2(input=input, depth=depth)
+    model_0, in_0, out_0 = resnet_v2(input=model_input, depth=depth)
+    model_1, in_1, out_1 = resnet_v2(input=model_input, depth=depth)
     #model_2 = resnet_v2(input_shape=input_shape, depth=depth)
 
 else:
-    model_0, in_0, out_0 = resnet_v1(input=input, depth=depth)
-    model_1, in_1, out_1 = resnet_v1(input=input, depth=depth)
+    model_0, in_0, out_0 = resnet_v1(input=model_input, depth=depth)
+    model_1, in_1, out_1 = resnet_v1(input=model_input, depth=depth)
     #model_2 = resnet_v1(input_shape=input_shape, depth=depth)
 
-model = Model(input=[input], output=[out_0, out_1])
+model_output = keras.layers.concatenate([out_0, out_1])
+#model_output = keras.layers.Activation('linear')(model_output_merge)
+
+model = Model(input=model_input, output=model_output)
 
 if int(FLAGS.lamda) == 0:
     print('No JSD term')
     model.compile(
-    loss=['categorical_crossentropy', 'categorical_crossentropy'],
+    loss='categorical_crossentropy',
     optimizer=Adam(lr=lr_schedule(0)),
-    metrics=['accuracy', JS_divergence])
+    metrics=[acc_metric, JS_divergence_metric])
 else:
     print('Have JSD term')
     model.compile(
-        loss=[Loss_0, Loss_1],
+        loss=Loss_withJSD,
         optimizer=Adam(lr=lr_schedule(0)),
-        metrics=['accuracy', JS_divergence])
+        metrics=[acc_metric, JS_divergence_metric])
 #model.summary()
 print(model_type)
 
 # Prepare model model saving directory.
-save_dir = os.path.join(os.getcwd(), 'saved_models_lamda'+str(FLAGS.lamda))
+save_dir = os.path.join(os.getcwd(), 'saved_models_lamda'+str(FLAGS.lamda)+'_'+str(FLAGS.augmentation))
 model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
@@ -392,7 +393,7 @@ filepath = os.path.join(save_dir, model_name)
 
 # Prepare callbacks for model saving and for learning rate adjustment.
 checkpoint = ModelCheckpoint(
-    filepath=filepath, monitor='val_acc', verbose=2, save_best_only=True)
+    filepath=filepath, monitor='val_acc_metric', mode='max', verbose=2, save_best_only=True)
 
 lr_scheduler = LearningRateScheduler(lr_schedule)
 
@@ -401,14 +402,21 @@ lr_reducer = ReduceLROnPlateau(
 
 callbacks = [checkpoint, lr_reducer, lr_scheduler]
 
+
+# Augment labels
+y_train_2 = np.concatenate([y_train, y_train], axis=-1)
+y_test_2 = np.concatenate([y_test, y_test], axis=-1)
+
+
+
 # Run training, with or without data augmentation.
-if not data_augmentation:
+if not FLAGS.augmentation:
     print('Not using data augmentation.')
     model.fit(
-        x_train, [y_train, y_train],
+        x_train, y_train_2,
         batch_size=batch_size,
         epochs=epochs,
-        validation_data=(x_test, [y_test, y_test]),
+        validation_data=(x_test, y_test_2),
         shuffle=True,
         verbose=2,
         callbacks=callbacks)
@@ -463,12 +471,11 @@ else:
 
     # Fit the model on the batches generated by datagen.flow().
     model.fit_generator(
-        generate_data_generator(datagen, x_train, y_train),
-        validation_data=(x_test, [y_test, y_test]),
+        datagen.flow(x_train, y_train_2, batch_size=batch_size),
+        validation_data=(x_test, y_test_2),
         epochs=epochs,
         verbose=2,
         workers=4,
-        steps_per_epoch=int(x_train.shape[0]/batch_size),
         callbacks=callbacks)
 
 # Score trained model.
