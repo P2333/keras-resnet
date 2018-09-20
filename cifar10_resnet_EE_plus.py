@@ -25,11 +25,6 @@ import os
 from model import resnet_v1, resnet_v2
 from utils import *
 
-FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_float('lamda', 0.01, "lamda for Ensemble Entropy(EE)")
-tf.app.flags.DEFINE_float('nonME_lamda', 0.01, "lamda for non-ME")
-tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
-
 
 
 # Training parameters
@@ -120,18 +115,18 @@ def lr_schedule(epoch):
 
 model_input = Input(shape=input_shape)
 
+model_dic = {}
+model_out = []
 if version == 2:
-    model_0, in_0, out_0 = resnet_v2(input=model_input, depth=depth)
-    model_1, in_1, out_1 = resnet_v2(input=model_input, depth=depth)
-    #model_2 = resnet_v2(input_shape=input_shape, depth=depth)
-
+    for i in range(FLAGS.num_models):
+        model_dic[str(i)] = resnet_v2(input=model_input, depth=depth)
+        model_out.append(model_dic[str(i)][2])
 else:
-    model_0, in_0, out_0 = resnet_v1(input=model_input, depth=depth)
-    model_1, in_1, out_1 = resnet_v1(input=model_input, depth=depth)
-    #model_2 = resnet_v1(input_shape=input_shape, depth=depth)
+    for i in range(FLAGS.num_models):
+        model_dic[str(i)] = resnet_v1(input=model_input, depth=depth)
+        model_out.append(model_dic[str(i)][2])
 
-model_output = keras.layers.concatenate([out_0, out_1])
-#model_output = keras.layers.Activation('linear')(model_output_merge)
+model_output = keras.layers.concatenate(model_out)
 
 model = Model(input=model_input, output=model_output)
 
@@ -151,7 +146,7 @@ model.summary()
 print(model_type)
 
 # Prepare model model saving directory.
-save_dir = os.path.join(os.getcwd(), 'EEplus_saved_models_lamda'+str(FLAGS.lamda)+'_nonMElamda'+str(FLAGS.nonME_lamda)+'_'+str(FLAGS.augmentation))
+save_dir = os.path.join(os.getcwd(), 'EEplus_saved_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_nonMElamda'+str(FLAGS.nonME_lamda)+'_'+str(FLAGS.augmentation))
 model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
@@ -170,8 +165,13 @@ callbacks = [checkpoint, lr_reducer, lr_scheduler]
 
 
 # Augment labels
-y_train_2 = np.concatenate([y_train, y_train], axis=-1)
-y_test_2 = np.concatenate([y_test, y_test], axis=-1)
+y_train_2 = []
+y_test_2 = []
+for _ in range(FLAGS.num_models):
+    y_train_2.append(y_train)
+    y_test_2.append(y_test)
+y_train_2 = np.concatenate(y_train_2, axis=-1)
+y_test_2 = np.concatenate(y_test_2, axis=-1)
 
 
 

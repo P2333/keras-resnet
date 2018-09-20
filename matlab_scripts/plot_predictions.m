@@ -8,7 +8,16 @@ num_test=1000;
 index=randsample(num_test_all,num_test);
 
 %Load results
-predictions=load('test_predictions_lamda2.0_nonMElamda1.0_epoch144.txt');
+%predictions=load('test_predictions_models2_lamda2.0_nonMElamda0.0_epoch143.txt');
+%predictions=load('test_predictions_models2_lamda2.0_nonMElamda0.3_epoch183.txt');
+%predictions=load('test_predictions_models2_lamda2.0_nonMElamda0.5_epoch150.txt');
+%predictions=load('test_predictions_models2_lamda2.0_nonMElamda0.7_epoch172.txt');
+%predictions=load('test_predictions_models2_lamda2.0_nonMElamda0.9_epoch160.txt');
+%predictions=load('test_predictions_models3_lamda2.0_nonMElamda0.0_epoch187.txt');
+%predictions=load('test_predictions_models3_lamda2.0_nonMElamda0.5_epoch155.txt');
+predictions=load('test_predictions_models3_lamda2.0_nonMElamda1.0_epoch180.txt');
+
+
 labels=load('test_labels.txt');
 
 %Sample a subset of results
@@ -37,4 +46,5 @@ y_2=L1norm_2.*sin_12;
 scatter(x_1,y_1,'*')
 hold on
 scatter(x_2,y_2,'x')
+axis([0 1 0 1])
 

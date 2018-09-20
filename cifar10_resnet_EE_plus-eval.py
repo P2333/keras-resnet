@@ -25,12 +25,6 @@ import os
 from model import resnet_v1, resnet_v2
 from utils import *
 
-tf.app.flags.DEFINE_float('lamda', 0.01, "lamda for Ensemble Entropy(EE)")
-tf.app.flags.DEFINE_float('nonME_lamda', 0.01, "lamda for non-ME")
-tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
-tf.app.flags.DEFINE_integer('epoch', 1, "epoch of the checkpoint to load")
-
-
 
 # Training parameters
 num_classes = 10
@@ -98,7 +92,7 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 print(model_type)
 
 # Prepare model pre-trained checkpoints directory.
-save_dir = os.path.join(os.getcwd(), 'EEplus_saved_models_lamda'+str(FLAGS.lamda)+'_nonMElamda'+str(FLAGS.nonME_lamda)+'_'+str(FLAGS.augmentation))
+save_dir = os.path.join(os.getcwd(), 'EEplus_saved_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_nonMElamda'+str(FLAGS.nonME_lamda)+'_'+str(FLAGS.augmentation))
 model_name = 'cifar10_%s_model.%d.h5' % (model_type, FLAGS.epoch)
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
@@ -118,7 +112,7 @@ print(y_test.shape)
 save_results_dir = os.path.join(os.getcwd(), 'output_results')
 if not os.path.isdir(save_results_dir):
     os.makedirs(save_results_dir)
-np.savetxt(os.path.join(save_results_dir, 'test_predictions_lamda%s_nonMElamda%s_epoch%d.txt'%(str(FLAGS.lamda),str(FLAGS.nonME_lamda),FLAGS.epoch)), predictions)
+np.savetxt(os.path.join(save_results_dir, 'test_predictions_models%s_lamda%s_nonMElamda%s_epoch%d.txt'%(str(FLAGS.num_models),str(FLAGS.lamda),str(FLAGS.nonME_lamda),FLAGS.epoch)), predictions)
 np.savetxt(os.path.join(save_results_dir, 'test_labels.txt'), y_test)
 
 
