@@ -64,3 +64,13 @@ def Loss_withEE_plus(y_true, y_pred, num_model=FLAGS.num_models):
     EE = Ensemble_Entropy(y_true, y_pred, num_model)
     sum_nonme = non_ME(y_true, y_pred, num_model)
     return CE_all - FLAGS.lamda * EE + FLAGS.nonME_lamda * sum_nonme
+
+def Loss_withEE_plus_leave_one(y_true, y_pred, num_model=FLAGS.num_models):
+    y_p = tf.split(y_pred, num_model, axis=-1)
+    y_t = tf.split(y_true, num_model, axis=-1)
+    CE_all = 0
+    for i in range(num_model):
+        CE_all += keras.losses.categorical_crossentropy(y_t[i], y_p[i])
+    EE = Ensemble_Entropy(y_true, y_pred, num_model)
+    sum_nonme = non_ME(y_true, y_pred, num_model - 1)###leave one model
+    return CE_all - FLAGS.lamda * EE + FLAGS.nonME_lamda * sum_nonme
