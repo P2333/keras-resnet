@@ -19,6 +19,9 @@ tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
 tf.app.flags.DEFINE_integer('num_models', 2, "The num of models in the ensemble")
 tf.app.flags.DEFINE_integer('epoch', 1, "epoch of the checkpoint to load")
 
+tf.app.flags.DEFINE_string('attack_method', 'MadryEtAl', "FastGradientMethod, MadryEtAl")
+tf.app.flags.DEFINE_float('eps', 0.05, "maximal eps for attacks")
+
 zero = tf.constant(0, dtype=tf.float32)
 
 ## Functions ##
