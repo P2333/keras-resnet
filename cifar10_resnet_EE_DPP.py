@@ -130,15 +130,9 @@ model_output = keras.layers.concatenate(model_out)
 
 model = Model(input=model_input, output=model_output)
 
-if int(FLAGS.lamda) == 0:
-    print('No Ensemble_Entropy term')
-    model.compile(
-    loss='categorical_crossentropy',
-    optimizer=Adam(lr=lr_schedule(0)),
-    metrics=[acc_metric, Ensemble_Entropy_metric, log_det_metric])
-else:
-    print('Have Ensemble_Entropy term')
-    model.compile(
+
+print('Have Ensemble_Entropy and DPP term')
+model.compile(
         loss=Loss_withEE_DPP,
         optimizer=Adam(lr=lr_schedule(0)),
         metrics=[acc_metric, Ensemble_Entropy_metric, log_det_metric])

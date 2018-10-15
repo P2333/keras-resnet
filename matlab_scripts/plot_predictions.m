@@ -15,7 +15,11 @@ index=randsample(num_test_all,num_test);
 %predictions=load('test_predictions_models2_lamda2.0_nonMElamda0.9_epoch160.txt');
 %predictions=load('test_predictions_models3_lamda2.0_nonMElamda0.0_epoch187.txt');
 %predictions=load('test_predictions_models3_lamda2.0_nonMElamda0.5_epoch155.txt');
-predictions=load('test_predictions_models3_lamda2.0_nonMElamda1.0_epoch180.txt');
+%predictions=load('test_predictions_models3_lamda2.0_nonMElamda1.0_epoch180.txt');
+%predictions=load('test_predictions_models2_lamda2.0_logdetlamda0.3_epoch153.txt');
+%predictions=load('test_predictions_models2_lamda2.0_logdetlamda0.7_epoch194.txt');
+%predictions=load('test_predictions_models4_lamda2.0_logdetlamda0.3_epoch170.txt');
+predictions=load('test_predictions_models3_lamda2.0_logdetlamda0.3_epoch180.txt');
 
 
 labels=load('test_labels.txt');
