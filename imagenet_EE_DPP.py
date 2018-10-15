@@ -60,7 +60,7 @@ checkpoint = ModelCheckpoint(
 
 #lr_scheduler = LearningRateScheduler(lr_schedule)
 lr_reducer = ReduceLROnPlateau(monitor='acc_metric', factor=0.1, mode=max,
-                              patience=1, min_lr=0.001, min_delta=0.001)
+                              patience=1, min_lr=0.001, min_delta=0.01)
 
 #callbacks = [lr_reducer, lr_scheduler]
 callbacks = [checkpoint, lr_reducer]

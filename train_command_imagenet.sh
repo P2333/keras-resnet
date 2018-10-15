@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python imagenet_EE_DPP.py --imagenet_train_dir='/raid/tianyu/adv_train/imagenet_data/train' --imagenet_validation_dir='/raid/tianyu/adv_train/imagenet_data/validation'
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python imagenet_EE_DPP.py --imagenet_train_dir='/raid/tianyu/adv_train/imagenet_data/train' --imagenet_validation_dir='/raid/tianyu/adv_train/imagenet_data/validation' --lamda=0.5 --log_det_lamda=0.5 --num_models=3

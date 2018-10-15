@@ -7,6 +7,7 @@ import numpy as np
 # Training parameters
 num_classes = 1000
 log_offset = 1e-20
+det_offset = 1e-5
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_float('lamda', 1.0, "lamda for Ensemble Entropy(EE)")
@@ -43,9 +44,10 @@ def log_det(y_true, y_pred, num_model=FLAGS.num_models, batch_size=FLAGS.train_b
     bool_R_y_true = tf.not_equal(tf.ones_like(y_true) - y_true, zero) # batch_size X (num_class X num_models), 2-D
     mask_non_y_pred = tf.boolean_mask(y_pred, bool_R_y_true) # batch_size X (num_class-1) X num_models, 1-D
     mask_non_y_pred = tf.reshape(mask_non_y_pred, [-1, num_model, num_classes-1]) # batch_size X num_model X (num_class-1), 3-D
+    mask_non_y_pred = mask_non_y_pred + det_offset
     mask_non_y_pred = mask_non_y_pred / tf.norm(mask_non_y_pred, axis=2, keepdims=True) # batch_size X num_model X (num_class-1), 3-D
     matrix = tf.matmul(mask_non_y_pred, tf.transpose(mask_non_y_pred, perm=[0, 2, 1])) # batch_size X num_model X num_model, 3-D
-    all_log_det = tf.log(tf.linalg.det(matrix+log_offset)) # batch_size X 1, 1-D
+    all_log_det = tf.log(tf.linalg.det(matrix)) # batch_size X 1, 1-D
     return all_log_det
 
 ## Metrics ##
