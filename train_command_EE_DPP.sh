@@ -90,7 +90,7 @@ CUDA_VISIBLE_DEVICES=3 python cifar10_resnet_EE_DPP-adv_ensemble_eval.py --lamda
 
 CUDA_VISIBLE_DEVICES=0 python cifar10_resnet_EE_DPP-adv_ensemble_eval.py --lamda=2.0 --log_det_lamda=0.3 --num_models=3 --augmentation=True --epoch=180 --baseline_epoch=139 --attack_method=MomentumIterativeMethod
 
-CUDA_VISIBLE_DEVICES=0 python cifar10_resnet_EE_DPP-adv_ensemble_eval.py --lamda=2.0 --log_det_lamda=0.3 --num_models=3 --augmentation=True --epoch=180 --baseline_epoch=139 --attack_method=BasicIterativeMethod
+CUDA_VISIBLE_DEVICES=0 nohup python -u cifar10_resnet_EE_DPP-adv_ensemble_eval.py --lamda=2.0 --log_det_lamda=0.3 --num_models=3 --augmentation=True --epoch=180 --baseline_epoch=139 --attack_method=BasicIterativeMethod > adv_ensemble_eval_BasicIterativeMethod.out 2>&1 &
 
 
 
@@ -109,8 +109,10 @@ CUDA_VISIBLE_DEVICES=0 python cifar10_resnet_EE_DPP-adv_transfer.py --lamda=2.0 
 
 
 
+CUDA_VISIBLE_DEVICES=1 nohup python -u cifar10_resnet_EE_DPP-adv_transfer_target.py --lamda=2.0 --log_det_lamda=0.3 --num_models=3 --augmentation=True --epoch=180 --baseline_epoch=139 --attack_method=MadryEtAl --eps=0.04 > adv_transfer_eval_MadryEtAl.out 2>&1 &
 
 
+CUDA_VISIBLE_DEVICES=1 nohup python -u cifar10_resnet_EE_DPP-adv_transfer_target.py --lamda=2.0 --log_det_lamda=0.3 --num_models=3 --augmentation=True --epoch=180 --baseline_epoch=139 --attack_method=MomentumIterativeMethod --eps=0.05 > adv_transfer_eval_MomentumIterativeMethod.out 2>&1 &
 
 
 
