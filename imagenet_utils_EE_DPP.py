@@ -47,7 +47,7 @@ def log_det(y_true, y_pred, num_model=FLAGS.num_models, batch_size=FLAGS.train_b
     mask_non_y_pred = mask_non_y_pred + det_offset
     mask_non_y_pred = mask_non_y_pred / tf.norm(mask_non_y_pred, axis=2, keepdims=True) # batch_size X num_model X (num_class-1), 3-D
     matrix = tf.matmul(mask_non_y_pred, tf.transpose(mask_non_y_pred, perm=[0, 2, 1])) # batch_size X num_model X num_model, 3-D
-    all_log_det = tf.log(tf.linalg.det(matrix)) # batch_size X 1, 1-D
+    all_log_det = tf.linalg.logdet(matrix+det_offset*tf.expand_dims(tf.eye(num_model),0)) # batch_size X 1, 1-D
     return all_log_det
 
 ## Metrics ##

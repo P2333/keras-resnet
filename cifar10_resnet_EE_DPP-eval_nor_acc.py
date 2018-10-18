@@ -9,7 +9,6 @@ from cleverhans.utils_tf import model_eval
 import os
 from utils import *
 from model import resnet_v1, resnet_v2
-from cleverhans.utils_keras import KerasModelWrapper
 
 
 # Training parameters
@@ -31,7 +30,6 @@ elif version == 2:
 # Model name, depth and version
 model_type = 'ResNet%dv%d' % (depth, version)
 print(model_type)
-print('Attack method is %s'%FLAGS.attack_method)
 
 # Load the CIFAR10 data.
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -78,6 +76,8 @@ print('Restore model checkpoints from %s'% filepath)
 
 
 
+
+
 #Creat model
 model_input = Input(shape=input_shape)
 model_dic = {}
@@ -98,58 +98,14 @@ model_ensemble = Model(input=model_input, output=model_ensemble)
 
 
 
-#Get individual models
-wrap_ensemble = KerasModelWrapper(model_ensemble)
-
 
 
 #Load model
 model.load_weights(filepath)
 
-
-
-# Initialize the attack method
-if FLAGS.attack_method == 'SaliencyMapMethod':
-    att = attacks.SaliencyMapMethod(wrap_ensemble, sess=sess)
-    att_params = {'theta': 1., 'gamma': 0.1,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
-elif FLAGS.attack_method == 'CarliniWagnerL2':
-    att = attacks.CarliniWagnerL2(wrap_ensemble)
-    att_params = {'batch_size':500,
-                  'confidence': 0.9,
-                  'learning_rate': 0.01,
-                  'binary_search_steps': 1,
-                  'max_iterations': 1000,
-                  'initial_const': 0.001,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
-elif FLAGS.attack_method == 'DeepFool':
-    att = attacks.DeepFool(wrap_ensemble)
-    att_params = {'max_iter': 100,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
-elif FLAGS.attack_method == 'LBFGS':
-    att = attacks.LBFGS(wrap_ensemble)
-    att_params = {'batch_size':500,
-                  'confidence': 0.9,
-                  'learning_rate': 0.01,
-                  'binary_search_steps': 1,
-                  'max_iterations': 1000,
-                  'initial_const': 0.001,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
-# Consider the attack to be constant
-eval_par = {'batch_size': 1}
-
-adv_x=att.generate_np(np.expand_dims(x_test[0],axis=0), **att_params)
-print(adv_x)
-#preds = model_ensemble(adv_x)
-#print(sess.run(adv_x,feed_dict={x:np.expand_dims(x_test[0],axis=0)}))
-#acc = model_eval(sess, x, y, preds, x_test, y_test, args=eval_par)
-#print('adv_ensemble_acc: %.3f'%acc)
-
+eval_par = {'batch_size': 500}
+acc_0 = model_eval(sess, x, y, model_dic['0'][0](x), x_test, y_test, args=eval_par)
+acc_1 = model_eval(sess, x, y, model_dic['1'][0](x), x_test, y_test, args=eval_par)
+acc_2 = model_eval(sess, x, y, model_dic['2'][0](x), x_test, y_test, args=eval_par)
+acc_ensemble = model_eval(sess, x, y, model_ensemble(x), x_test, y_test, args=eval_par)
+print('Model_0 acc: %.3f; Model_1 acc: %.3f; Model_2 acc: %.3f; Model_ensemble acc: %.3f;'%(acc_0,acc_1,acc_2,acc_ensemble))
