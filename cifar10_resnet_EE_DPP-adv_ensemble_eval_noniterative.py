@@ -146,10 +146,9 @@ elif FLAGS.attack_method == 'LBFGS':
 # Consider the attack to be constant
 eval_par = {'batch_size': 1}
 
-adv_x=att.generate_np(np.expand_dims(x_test[0],axis=0), **att_params)
-print(adv_x)
-#preds = model_ensemble(adv_x)
+adv_x=att.generate(x, **att_params)
+preds = model_ensemble(adv_x)
 #print(sess.run(adv_x,feed_dict={x:np.expand_dims(x_test[0],axis=0)}))
-#acc = model_eval(sess, x, y, preds, x_test, y_test, args=eval_par)
-#print('adv_ensemble_acc: %.3f'%acc)
+acc = model_eval(sess, x, y, preds, np.expand_dims(x_test[0],axis=0), np.expand_dims(y_test[0],axis=0), args=eval_par)
+print('adv_ensemble_acc: %.3f'%acc)
 
