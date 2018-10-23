@@ -109,6 +109,9 @@ CUDA_VISIBLE_DEVICES=6 nohup python -u cifar10_resnet_EE_DPP-adv_ensemble_eval_n
 CUDA_VISIBLE_DEVICES=7 nohup python -u cifar10_resnet_EE_DPP-adv_ensemble_eval_noniterative.py --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True --epoch=159 --attack_method=DeepFool > adv_ensemble_acc_DeepFool_model3_lamda2p0_loglamda0p5.out 2>&1 &
 
 #Adv ensemble acc (target)
+CUDA_VISIBLE_DEVICES=0 nohup python -u cifar10_resnet_EE_DPP-adv_ensemble_eval_target.py --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True --epoch=159 --baseline_epoch=139 --attack_method=MadryEtAl > adv_ensemble_acc_MadryEtAl_model3_lamda2p0_loglamda0p5_target.out 2>&1 &
+CUDA_VISIBLE_DEVICES=1 nohup python -u cifar10_resnet_EE_DPP-adv_ensemble_eval_target.py --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True --epoch=159 --baseline_epoch=139 --attack_method=MomentumIterativeMethod > adv_ensemble_acc_MomentumIterativeMethod_model3_lamda2p0_loglamda0p5_target.out 2>&1 &
+CUDA_VISIBLE_DEVICES=2 nohup python -u cifar10_resnet_EE_DPP-adv_ensemble_eval_target.py --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True --epoch=159 --baseline_epoch=139 --attack_method=BasicIterativeMethod > adv_ensemble_acc_BasicIterativeMethod_model3_lamda2p0_loglamda0p5_target.out 2>&1 &
 
 
 #Adv ensemble acc
