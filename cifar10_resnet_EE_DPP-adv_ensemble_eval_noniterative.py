@@ -9,16 +9,13 @@ from cleverhans.utils_tf import model_eval
 import os
 from utils import *
 from model import resnet_v1, resnet_v2
-from cleverhans.utils_keras import KerasModelWrapper
-
+from keras_wraper import KerasModelWrapper
 
 # Training parameters
 num_classes = 10
 log_offset = 1e-20
 n = 3
-subtract_pixel_mean = True# Subtracting pixel mean improves accuracy
-
-
+subtract_pixel_mean = True  # Subtracting pixel mean improves accuracy
 
 # Model version
 # Orig paper: version = 1 (ResNet v1), Improved ResNet: version = 2 (ResNet v2)
@@ -31,7 +28,7 @@ elif version == 2:
 # Model name, depth and version
 model_type = 'ResNet%dv%d' % (depth, version)
 print(model_type)
-print('Attack method is %s'%FLAGS.attack_method)
+print('Attack method is %s' % FLAGS.attack_method)
 
 # Load the CIFAR10 data.
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
@@ -57,26 +54,20 @@ if subtract_pixel_mean:
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
-
-
-
-
 # Define input TF placeholder
 x = tf.placeholder(tf.float32, shape=(None, 32, 32, 3))
 y = tf.placeholder(tf.float32, shape=(None, num_classes))
 sess = tf.Session()
 keras.backend.set_session(sess)
 
-
-
 # Prepare model pre-trained checkpoints directory.
-save_dir = os.path.join(os.getcwd(), 'EE_DPP_saved_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+str(FLAGS.augmentation))
+save_dir = os.path.join(
+    '/mfs/tianyu/improve_diversity/keras-resnet',
+    'EE_DPP_saved_models' + str(FLAGS.num_models) + '_lamda' + str(FLAGS.lamda)
+    + '_logdetlamda' + str(FLAGS.log_det_lamda) + '_' + str(FLAGS.augmentation))
 model_name = 'cifar10_%s_model.%d.h5' % (model_type, FLAGS.epoch)
 filepath = os.path.join(save_dir, model_name)
-print('Restore model checkpoints from %s'% filepath)
-
-
-
+print('Restore model checkpoints from %s' % filepath)
 
 #Creat model
 model_input = Input(shape=input_shape)
@@ -92,64 +83,61 @@ else:
         model_out.append(model_dic[str(i)][2])
 model_output = keras.layers.concatenate(model_out)
 model = Model(inputs=model_input, outputs=model_output)
-model_ensemble = keras.layers.Add()(model_out)
-model_ensemble = Model(input=model_input, output=model_ensemble)
-
-
-
+model_ensemble = keras.layers.Average()(model_out)
+model_ensemble = Model(inputs=model_input, outputs=model_ensemble)
 
 #Get individual models
 wrap_ensemble = KerasModelWrapper(model_ensemble)
+# for layer in wrap_ensemble.model.layers:
+#     print(layer.get_config()['name'])
 
-
+# wrap_ensemble = KerasModelWrapper(model_dic['1'][0])
 
 #Load model
 model.load_weights(filepath)
 
-
-
 # Initialize the attack method
 if FLAGS.attack_method == 'SaliencyMapMethod':
     att = attacks.SaliencyMapMethod(wrap_ensemble, sess=sess)
-    att_params = {'theta': 1., 'gamma': 0.1,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
+    att_params = {
+        'theta': 1.,
+        'gamma': 0.1,
+        'clip_min': clip_min,
+        'clip_max': clip_max,
+    }
 elif FLAGS.attack_method == 'CarliniWagnerL2':
-    att = attacks.CarliniWagnerL2(wrap_ensemble)
-    att_params = {'batch_size':500,
-                  'confidence': 0.9,
-                  'learning_rate': 0.01,
-                  'binary_search_steps': 1,
-                  'max_iterations': 1000,
-                  'initial_const': 0.001,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
+    att = attacks.CarliniWagnerL2(wrap_ensemble, sess=sess)
+    att_params = {
+        'batch_size': 1,
+        'confidence': 0.9,
+        'learning_rate': 0.01,
+        'binary_search_steps': 1,
+        'max_iterations': 1000,
+        'initial_const': 0.001,
+        'clip_min': clip_min,
+        'clip_max': clip_max
+    }
 elif FLAGS.attack_method == 'DeepFool':
-    att = attacks.DeepFool(wrap_ensemble)
-    att_params = {'max_iter': 100,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
+    att = attacks.DeepFool(wrap_ensemble, sess=sess)
+    att_params = {'max_iter': 100, 'clip_min': clip_min, 'clip_max': clip_max}
 elif FLAGS.attack_method == 'LBFGS':
-    att = attacks.LBFGS(wrap_ensemble)
-    att_params = {'batch_size':500,
-                  'confidence': 0.9,
-                  'learning_rate': 0.01,
-                  'binary_search_steps': 1,
-                  'max_iterations': 1000,
-                  'initial_const': 0.001,
-                  'clip_min': clip_min,
-                  'clip_max': clip_max
-                  }
+    att = attacks.LBFGS(wrap_ensemble, sess=sess)
+    clip_min = np.mean(clip_min)
+    clip_max = np.mean(clip_max)
+
+    att_params = {
+        'y_target': y,
+        'batch_size': 1,
+        'binary_search_steps': 1,
+        'max_iterations': 1000,
+        'initial_const': 0.001,
+        'clip_min': clip_min,
+        'clip_max': clip_max
+    }
 # Consider the attack to be constant
 eval_par = {'batch_size': 1}
 
-adv_x=att.generate_np(np.expand_dims(x_test[0],axis=0), **att_params)
+print("start attack")
+y_target = y_test[:1]
+adv_x = att.generate_np(np.expand_dims(x_test[1], axis=0), **att_params)
 print(adv_x)
-#preds = model_ensemble(adv_x)
-#print(sess.run(adv_x,feed_dict={x:np.expand_dims(x_test[0],axis=0)}))
-#acc = model_eval(sess, x, y, preds, x_test, y_test, args=eval_par)
-#print('adv_ensemble_acc: %.3f'%acc)
-

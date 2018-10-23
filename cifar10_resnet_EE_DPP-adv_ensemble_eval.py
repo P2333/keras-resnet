@@ -9,7 +9,7 @@ from cleverhans.utils_tf import model_eval
 import os
 from utils import *
 from model import resnet_v1, resnet_v2
-from cleverhans.utils_keras import KerasModelWrapper
+from keras_wraper import KerasModelWrapper
 
 
 # Training parameters
