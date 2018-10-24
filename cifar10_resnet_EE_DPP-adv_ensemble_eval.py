@@ -9,7 +9,7 @@ from cleverhans.utils_tf import model_eval
 import os
 from utils import *
 from model import resnet_v1, resnet_v2
-from keras_wraper import KerasModelWrapper
+from keras_wraper_ensemble import KerasModelWrapper
 
 
 # Training parameters
@@ -99,7 +99,7 @@ else:
         model_out.append(model_dic[str(i)][2])
 model_output = keras.layers.concatenate(model_out)
 model = Model(inputs=model_input, outputs=model_output)
-model_ensemble = keras.layers.Add()(model_out)
+model_ensemble = keras.layers.Average()(model_out)
 model_ensemble = Model(input=model_input, output=model_ensemble)
 
 
@@ -118,7 +118,7 @@ else:
         model_out_baseline.append(model_dic_baseline[str(i)][2])
 model_output_baseline = keras.layers.concatenate(model_out_baseline)
 model_baseline = Model(inputs=model_input_baseline, outputs=model_output_baseline)
-model_ensemble_baseline = keras.layers.Add()(model_out_baseline)
+model_ensemble_baseline = keras.layers.Average()(model_out_baseline)
 model_ensemble_baseline = Model(input=model_input_baseline, output=model_ensemble_baseline)
 
 

@@ -103,10 +103,9 @@ else:
 
 model_output = keras.layers.concatenate(model_out)
 model = Model(inputs=model_input, outputs=model_output)
-model_ensemble_logits = keras.layers.Add()(model_out_logits)
+model_ensemble_logits = keras.layers.Average()(model_out_logits)
 model_ensemble_logits = Activation('softmax')(model_ensemble_logits)
 model_ensemble_logits = Model(inputs=model_input, outputs=model_ensemble_logits)
-
 
 
 
@@ -129,7 +128,7 @@ else:
 
 model_output_baseline = keras.layers.concatenate(model_out_baseline)
 model_baseline = Model(inputs=model_input_baseline, outputs=model_output_baseline)
-model_ensemble_logits_baseline = keras.layers.Add()(model_out_logits_baseline)
+model_ensemble_logits_baseline = keras.layers.Average()(model_out_logits_baseline)
 model_ensemble_logits_baseline = Activation('softmax')(model_ensemble_logits_baseline)
 model_ensemble_logits_baseline = Model(inputs=model_input_baseline, outputs=model_ensemble_logits_baseline)
 
