@@ -10,6 +10,7 @@ import os
 from utils import *
 from model import resnet_v1, resnet_v2
 from keras_wraper_ensemble import KerasModelWrapper
+from jsma import jsma_impl_loop
 
 # Training parameters
 num_classes = 10
@@ -57,7 +58,8 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 # Define input TF placeholder
 x = tf.placeholder(tf.float32, shape=(None, 32, 32, 3))
 y = tf.placeholder(tf.float32, shape=(None, num_classes))
-sess = tf.Session()
+y_adv = tf.placeholder(tf.float32, shape=(None, num_classes))
+sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 keras.backend.set_session(sess)
 
 # Prepare model pre-trained checkpoints directory.
@@ -94,68 +96,30 @@ wrap_ensemble = KerasModelWrapper(model_ensemble)
 # wrap_ensemble = KerasModelWrapper(model_dic['1'][0])
 
 #Load model
-model.load_weights(filepath)
 
-# Initialize the attack method
-if FLAGS.attack_method == 'SaliencyMapMethod':
-    att = attacks.SaliencyMapMethod(wrap_ensemble, sess=sess)
-    att_params = {
-        'theta': 1.,
-        'gamma': 0.1,
-        'clip_min': clip_min,
-        'clip_max': clip_max,
-    }
-elif FLAGS.attack_method == 'CarliniWagnerL2':
-    att = attacks.CarliniWagnerL2(wrap_ensemble, sess=sess)
-    att_params = {
-        'batch_size': 1,
-        'confidence': 0.9,
-        'learning_rate': 0.01,
-        'binary_search_steps': 1,
-        'max_iterations': 1000,
-        'initial_const': 0.001,
-        'clip_min': clip_min,
-        'clip_max': clip_max
-    }
-elif FLAGS.attack_method == 'DeepFool':
-    att = attacks.DeepFool(wrap_ensemble, sess=sess)
-    att_params = {'max_iter': 100, 'clip_min': clip_min, 'clip_max': clip_max}
-elif FLAGS.attack_method == 'LBFGS':
-    att = attacks.LBFGS(wrap_ensemble, sess=sess)
-    clip_min = np.mean(clip_min)
-    clip_max = np.mean(clip_max)
-
-    att_params = {
-        'y_target': y,
-        'batch_size': 1,
-        'binary_search_steps': 1,
-        'max_iterations': 1000,
-        'initial_const': 0.001,
-        'clip_min': clip_min,
-        'clip_max': clip_max
-    }
+# adv_x = jsma_attack(
+#     wrap_ensemble,
+#     x,
+#     y_adv,
+#     epochs=0.1,
+#     eps=1.0,
+#     clip_min=clip_min,
+#     clip_max=clip_max,
+# )
 # Consider the attack to be constant
 eval_par = {'batch_size': 1}
 
-# print("start attack")
-# y_target = y_test[:1]
-# adv_x = att.generate_np(np.expand_dims(x_test[1], axis=0), **att_params)
+sess.run(tf.initialize_all_variables())
+model.load_weights(filepath)
+
+print("start attack")
 # print(adv_x)
+# print(y_test[0:2])
+# adv_np = sess.run(adv_x, feed_dict={x: x_test[0:1], y_adv: y_test[1:2]})
+# print(adv_np)
+num_samples = 100
+preds = wrap_ensemble.get_probs(x)
 
-num_samples = 1000
-preds_baseline = wrap_ensemble.get_probs(x)
-print(
-    model_eval(
-        sess,
-        x,
-        y,
-        preds_baseline,
-        x_test[:num_samples],
-        y_test[:num_samples],
-        args=eval_par))
-
-adv_x = att.generate(x, **att_params)
-preds = wrap_ensemble.get_probs(adv_x)
 print(
     model_eval(
         sess,
@@ -163,5 +127,28 @@ print(
         y,
         preds,
         x_test[:num_samples],
+        y_test[:num_samples],
+        args=eval_par))
+
+adv_data = np.zeros(x_test.shape)
+for i in range(num_samples):
+    print(i)
+    tmp = jsma_impl_loop(
+        sess,
+        x_test[i:i + 1],
+        y_test[i:i + 1],
+        wrap_ensemble,
+        x,
+        y,
+        increase=False)
+    adv_data[i] = tmp[0]
+
+print(
+    model_eval(
+        sess,
+        x,
+        y,
+        preds,
+        adv_data[:num_samples],
         y_test[:num_samples],
         args=eval_par))
