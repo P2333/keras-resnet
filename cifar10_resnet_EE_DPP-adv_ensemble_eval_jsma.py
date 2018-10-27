@@ -152,3 +152,4 @@ print(
         adv_data[:num_samples],
         y_test[:num_samples],
         args=eval_par))
+print("finished")
