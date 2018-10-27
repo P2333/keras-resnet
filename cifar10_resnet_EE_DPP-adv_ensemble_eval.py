@@ -150,12 +150,12 @@ elif FLAGS.attack_method == 'BasicIterativeMethod':
     att_baseline = attacks.BasicIterativeMethod(wrap_ensemble_baseline)
 
 # Consider the attack to be constant
-acc_record = np.zeros((2,11)) #first row is our method, second
-eval_par = {'batch_size': 500}
+acc_record = np.zeros((2,21)) #first row is our method, second
+eval_par = {'batch_size': 100}
 
-for eps in range(11):
-    eps_ = eps * 0.01
-    print('eps is %.2f'%eps_)
+for eps in range(21):
+    eps_ = eps * 0.005
+    print('eps is %.3f'%eps_)
     att_params = {'eps': eps_,
                    'clip_min': clip_min,
                    'clip_max': clip_max,
@@ -170,4 +170,4 @@ for eps in range(11):
     acc_record[1][eps] = acc_baseline
     print('adv_ensemble_acc: %.3f adv_ensemble_baseline_acc: %.3f'%(acc,acc_baseline))
 
-np.savetxt('output_results/cifar10_adv_ensemble_acc_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+FLAGS.attack_method+'.txt', acc_record)
+np.savetxt('output_results/MODIFIED_cifar10_adv_ensemble_acc_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+FLAGS.attack_method+'.txt', acc_record)
