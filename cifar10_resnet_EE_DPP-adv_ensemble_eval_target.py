@@ -174,8 +174,8 @@ for eps in range(21):
     adv_x_baseline = tf.stop_gradient(att_baseline.generate(x, **att_params))
     preds = model_ensemble(adv_x)
     preds_baseline = model_ensemble_baseline(adv_x_baseline)
-    acc = model_eval_targetacc(sess, x, y, y_target, preds, x_test, y_test_target, args=eval_par)
-    acc_baseline = model_eval_targetacc(sess, x, y, y_target, preds_baseline, x_test, y_test_target, args=eval_par)
+    acc = model_eval_targetacc(sess, x, y, y_target, preds, x_test, y_test_target, y_test_target, args=eval_par)
+    acc_baseline = model_eval_targetacc(sess, x, y, y_target, preds_baseline, x_test, y_test_target, y_test_target, args=eval_par)
     success_rate[0][eps] = acc
     success_rate[1][eps] = acc_baseline
     print('adv_ensemble_acc_target: %.3f adv_ensemble_baseline_acc_target: %.3f' % (acc, acc_baseline))

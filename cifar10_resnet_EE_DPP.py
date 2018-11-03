@@ -31,7 +31,6 @@ from utils import *
 epochs = 180
 num_classes = 10
 
-
 # Subtracting pixel mean improves accuracy
 subtract_pixel_mean = True
 
@@ -89,7 +88,6 @@ print('y_train shape:', y_train.shape)
 y_train = keras.utils.to_categorical(y_train, num_classes)
 y_test = keras.utils.to_categorical(y_test, num_classes)
 
-
 def lr_schedule(epoch):
     """Learning Rate Schedule
     Learning rate is scheduled to be reduced after 80, 120, 160, 180 epochs.
@@ -99,10 +97,14 @@ def lr_schedule(epoch):
     # Returns
         lr (float32): learning rate
     """
-    lr = 1e-2
-    if epoch > 140:
+    lr = 1e-3
+    if epoch > 180:
+        lr *= 0.5e-3
+    elif epoch > 160:
+        lr *= 1e-3
+    elif epoch > 120:
         lr *= 1e-2
-    elif epoch > 100:
+    elif epoch > 80:
         lr *= 1e-1
     print('Learning rate: ', lr)
     return lr
@@ -128,13 +130,18 @@ model = Model(input=model_input, output=model_output)
 print('Have Ensemble_Entropy and DPP term')
 model.compile(
         loss=Loss_withEE_DPP,
-        optimizer=SGD(lr=lr_schedule(0), momentum=0.9),
+        optimizer=Adam(lr=lr_schedule(0)),
         metrics=[acc_metric, Ensemble_Entropy_metric, log_det_metric])
 model.summary()
 print(model_type)
 
+if FLAGS.label_smooth == 1.0:
+    ls = ''
+else:
+    ls = '_labelsmooth'+str(FLAGS.label_smooth)
 # Prepare model model saving directory.
-save_dir = os.path.join(os.getcwd(), 'EE_DPP_SameAsPaper_saved_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+str(FLAGS.augmentation))
+save_dir = os.path.join(os.getcwd(), 'EE_DPP_saved_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)
+                        +'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+str(FLAGS.augmentation)+ls)
 model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)

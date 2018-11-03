@@ -19,7 +19,7 @@ class KerasModelWrapper(Model):
   in-place operations can incur an overhead.
   """
 
-    def __init__(self, model):
+    def __init__(self, model, num_class=10):
         """
         Create a wrapper for a Keras model
         :param model: A Keras model
@@ -31,6 +31,7 @@ class KerasModelWrapper(Model):
 
         self.model = model
         self.keras_model = None
+        self.num_classes = num_class
 
     def _get_softmax_name(self):
         """

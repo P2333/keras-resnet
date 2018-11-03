@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0,1 python tiny_imagenet_EE_DPP.py --tiny_imagenet_train_dir='/home/tianyu/tiny-imagenet-200/train' --lamda=0.7 --log_det_lamda=0.2 --num_models=3

@@ -62,11 +62,16 @@ y_adv = tf.placeholder(tf.float32, shape=(None, num_classes))
 sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
 keras.backend.set_session(sess)
 
+if FLAGS.label_smooth == 1.0:
+    ls = ''
+else:
+    ls = '_labelsmooth'+str(FLAGS.label_smooth)
+
 # Prepare model pre-trained checkpoints directory.
 save_dir = os.path.join(
     '/mfs/tianyu/improve_diversity/keras-resnet',
     'EE_DPP_saved_models' + str(FLAGS.num_models) + '_lamda' + str(FLAGS.lamda)
-    + '_logdetlamda' + str(FLAGS.log_det_lamda) + '_' + str(FLAGS.augmentation))
+    + '_logdetlamda' + str(FLAGS.log_det_lamda) + '_' + str(FLAGS.augmentation)+ls)
 model_name = 'cifar10_%s_model.%d.h5' % (model_type, FLAGS.epoch)
 filepath = os.path.join(save_dir, model_name)
 print('Restore model checkpoints from %s' % filepath)
@@ -117,7 +122,7 @@ print("start attack")
 # print(y_test[0:2])
 # adv_np = sess.run(adv_x, feed_dict={x: x_test[0:1], y_adv: y_test[1:2]})
 # print(adv_np)
-num_samples = 100
+num_samples = 200
 preds = wrap_ensemble.get_probs(x)
 
 print(
@@ -140,6 +145,10 @@ for i in range(num_samples):
         wrap_ensemble,
         x,
         y,
+        gamma=0.05,
+        eps=0.1,
+        clip_min=clip_min,
+        clip_max=clip_max,
         increase=False)
     adv_data[i] = tmp[0]
 

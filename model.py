@@ -110,14 +110,14 @@ def resnet_v1(input, depth, num_classes=10):
     # Add classifier on top.
     # v1 does not use BN after last shortcut connection-ReLU
     x = AveragePooling2D(pool_size=8)(x)
-    y = Flatten()(x)
+    final_features = Flatten()(x)
     logits = Dense(
-        num_classes, kernel_initializer='he_normal')(y)
+        num_classes, kernel_initializer='he_normal')(final_features)
     outputs = Activation('softmax')(logits)
 
     # Instantiate model.
     model = Model(inputs=inputs, outputs=outputs)
-    return model, inputs, outputs, logits
+    return model, inputs, outputs, logits, final_features
 
 
 def resnet_v2(input, depth, num_classes=10):
@@ -203,10 +203,10 @@ def resnet_v2(input, depth, num_classes=10):
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = AveragePooling2D(pool_size=8)(x)
-    y = Flatten()(x)
+    final_features = Flatten()(x)
     logits = Dense(
-        num_classes, kernel_initializer='he_normal')(y)
+        num_classes, kernel_initializer='he_normal')(final_features)
     outputs = Activation('softmax')(logits)
     # Instantiate model.
     model = Model(inputs=inputs, outputs=outputs)
-    return model, inputs, outputs, logits
+    return model, inputs, outputs, logits, final_features

@@ -67,7 +67,10 @@ y = tf.placeholder(tf.float32, shape=(None, num_classes))
 sess = tf.Session()
 keras.backend.set_session(sess)
 
-
+if FLAGS.label_smooth == 1.0:
+    ls = ''
+else:
+    ls = '_labelsmooth'+str(FLAGS.label_smooth)
 
 # Prepare model pre-trained checkpoints directory.
 save_dir = os.path.join(os.getcwd(), 'EE_DPP_saved_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+str(FLAGS.augmentation))
@@ -76,7 +79,7 @@ filepath = os.path.join(save_dir, model_name)
 print('Restore model checkpoints from %s'% filepath)
 
 # Prepare baseline model pre-trained checkpoints directory.
-save_dir_baseline = os.path.join(os.getcwd(), 'EE_DPP_saved_models'+str(FLAGS.num_models)+'_lamda0.0_logdetlamda0.0_'+str(FLAGS.augmentation))
+save_dir_baseline = os.path.join(os.getcwd(), 'EE_DPP_saved_models'+str(FLAGS.num_models)+'_lamda0.0_logdetlamda0.0_'+str(FLAGS.augmentation)+ls)
 model_name_baseline = 'cifar10_%s_model.%d.h5' % (model_type, FLAGS.baseline_epoch)
 filepath_baseline = os.path.join(save_dir_baseline, model_name_baseline)
 print('Restore baseline model checkpoints from %s'% filepath_baseline)
@@ -156,7 +159,12 @@ eval_par = {'batch_size': 100}
 for eps in range(21):
     eps_ = eps * 0.005
     print('eps is %.3f'%eps_)
-    att_params = {'eps': eps_,
+    if FLAGS.attack_method == 'FastGradientMethod':
+        att_params = {'eps': eps_,
+                   'clip_min': clip_min,
+                   'clip_max': clip_max}
+    else:
+        att_params = {'eps': eps_,
                    'clip_min': clip_min,
                    'clip_max': clip_max,
                    'nb_iter': 10}
@@ -170,4 +178,4 @@ for eps in range(21):
     acc_record[1][eps] = acc_baseline
     print('adv_ensemble_acc: %.3f adv_ensemble_baseline_acc: %.3f'%(acc,acc_baseline))
 
-np.savetxt('output_results/MODIFIED_cifar10_adv_ensemble_acc_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+FLAGS.attack_method+'.txt', acc_record)
+np.savetxt('output_results/MODIFIED_cifar10_adv_ensemble_acc_models'+str(FLAGS.num_models)+'_lamda'+str(FLAGS.lamda)+'_logdetlamda'+str(FLAGS.log_det_lamda)+'_'+FLAGS.attack_method+ls+'.txt', acc_record)
