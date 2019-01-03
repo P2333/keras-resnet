@@ -29,6 +29,8 @@ tf.app.flags.DEFINE_float('eps', 0.05, "maximal eps for attacks")
 tf.app.flags.DEFINE_integer('baseline_epoch', 1, "epoch of the checkpoint to load")
 tf.app.flags.DEFINE_integer('batch_size', 64, "")
 tf.app.flags.DEFINE_float('label_smooth', 1.0, "")
+tf.app.flags.DEFINE_float('eps_', 0.01, "eps for iterative attacks")
+tf.app.flags.DEFINE_float('param', 0.01, "params for non-iterative attacks")
 
 
 zero = tf.constant(0, dtype=tf.float32)

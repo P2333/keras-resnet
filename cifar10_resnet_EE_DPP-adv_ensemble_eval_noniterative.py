@@ -124,7 +124,7 @@ if FLAGS.attack_method == 'SaliencyMapMethod':
     }
     adv_x = att.generate(x, **att_params)
 elif FLAGS.attack_method == 'CarliniWagnerL2':
-    num_samples = 10000
+    num_samples = 1000
     eval_par = {'batch_size': 100}
     att = attacks.CarliniWagnerL2(wrap_ensemble, sess=sess)
     att_params = {
@@ -132,14 +132,14 @@ elif FLAGS.attack_method == 'CarliniWagnerL2':
         'confidence': 0.1,
         'learning_rate': 0.01,
         'binary_search_steps': 1,
-        'max_iterations': 100,
-        'initial_const': 0.001,
+        'max_iterations': 1000,
+        'initial_const': 0.01,
         'clip_min': clip_min,
         'clip_max': clip_max
     }
     adv_x = att.generate(x, **att_params)
 elif FLAGS.attack_method == 'ElasticNetMethod':
-    num_samples = 10000
+    num_samples = 1000
     eval_par = {'batch_size': 100}
     att = attacks.ElasticNetMethod(wrap_ensemble, sess=sess)
     att_params = {
@@ -147,7 +147,7 @@ elif FLAGS.attack_method == 'ElasticNetMethod':
         'confidence': 0.1,
         'learning_rate': 0.01,
         'binary_search_steps': 1,
-        'max_iterations': 100,
+        'max_iterations': 1000,
         'initial_const': 1.0,
         'beta': 1e-2,
         'fista': True,

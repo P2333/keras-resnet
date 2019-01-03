@@ -108,4 +108,4 @@ acc_0 = model_eval(sess, x, y, model_dic['0'][0](x), x_test, y_test, args=eval_p
 acc_1 = model_eval(sess, x, y, model_dic['1'][0](x), x_test, y_test, args=eval_par)
 acc_2 = model_eval(sess, x, y, model_dic['2'][0](x), x_test, y_test, args=eval_par)
 acc_ensemble = model_eval(sess, x, y, model_ensemble(x), x_test, y_test, args=eval_par)
-print('Model_0 acc: %.3f; Model_1 acc: %.3f; Model_2 acc: %.3f; Model_ensemble acc: %.3f;'%(acc_0,acc_1,acc_2,acc_ensemble))
+print('Model_0 acc: %.4f; Model_1 acc: %.4f; Model_2 acc: %.4f; Model_ensemble acc: %.4f;'%(acc_0,acc_1,acc_2,acc_ensemble))

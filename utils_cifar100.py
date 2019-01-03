@@ -22,11 +22,11 @@ tf.app.flags.DEFINE_float('log_det_lamda', 0.5, "lamda for non-ME")
 
 tf.app.flags.DEFINE_bool('augmentation', False, "whether use data augmentation")
 tf.app.flags.DEFINE_integer('num_models', 2, "The num of models in the ensemble")
-tf.app.flags.DEFINE_integer('epoch', 1, "epoch of the checkpoint to load")
+tf.app.flags.DEFINE_string('epoch', '1', "epoch of the checkpoint to load")
+tf.app.flags.DEFINE_string('baseline_epoch', '1', "epoch of the checkpoint to load")
 
 tf.app.flags.DEFINE_string('attack_method', 'MadryEtAl', "FastGradientMethod, MadryEtAl")
 tf.app.flags.DEFINE_float('eps', 0.05, "maximal eps for attacks")
-tf.app.flags.DEFINE_integer('baseline_epoch', 1, "epoch of the checkpoint to load")
 tf.app.flags.DEFINE_integer('batch_size', 64, "")
 tf.app.flags.DEFINE_float('label_smooth', 1.0, "")
 

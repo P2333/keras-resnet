@@ -122,7 +122,7 @@ print("start attack")
 # print(y_test[0:2])
 # adv_np = sess.run(adv_x, feed_dict={x: x_test[0:1], y_adv: y_test[1:2]})
 # print(adv_np)
-num_samples = 200
+num_samples = 100
 preds = wrap_ensemble.get_probs(x)
 
 print(
