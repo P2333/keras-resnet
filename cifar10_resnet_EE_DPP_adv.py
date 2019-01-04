@@ -110,9 +110,7 @@ def lr_schedule(epoch):
         lr (float32): learning rate
     """
     lr = 1e-3
-    if epoch > 180:
-        lr *= 0.5e-3
-    elif epoch > 160:
+    if epoch > 160:
         lr *= 1e-3
     elif epoch > 120:
         lr *= 1e-2
@@ -142,16 +140,23 @@ model_ensemble = keras.layers.Average()(model_out)
 model_ensemble = Model(inputs=model_input, outputs=model_ensemble)
 wrap_ensemble = KerasModelWrapper(model_ensemble, num_class=10)
 
-att = attacks.MadryEtAl(wrap_ensemble)
-att_baseline = attacks.MadryEtAl(wrap_ensemble)
+
 eps = tf.random_uniform((), 0.01, 0.05)
-att_params = {
-    'eps': eps,
-    'eps_iter': eps/10.,
-    'clip_min': clip_min,
-    'clip_max': clip_max,
-    'nb_iter': 10
-}
+if FLAGS.attack_method == 'MadryEtAl':
+    att = attacks.MadryEtAl(wrap_ensemble)
+    att_params = {
+        'eps': eps,
+        'eps_iter': eps/10.,
+        'clip_min': clip_min,
+        'clip_max': clip_max,
+        'nb_iter': 10
+    }
+elif FLAGS.attack_method == 'FastGradientMethod':
+    att = attacks.FastGradientMethod(wrap_ensemble)
+    att_params = {'eps': eps,
+                   'clip_min': clip_min,
+                   'clip_max': clip_max}
+
 adv_x = tf.stop_gradient(att.generate(model_input, **att_params))
 adv_output = model(adv_x)
 normal_output = model(model_input)
@@ -176,12 +181,19 @@ def _Loss_withEE_DPP(y_true,
     log_dets = log_det(y_true, y_pred, num_model)
     return CE_all - FLAGS.lamda * EE - FLAGS.log_det_lamda * log_dets
 
+def adv_acc_metric(y_true, y_pred, num_model=FLAGS.num_models):
+    y_p = tf.split(adv_output, num_model, axis=-1)
+    y_t = tf.split(y_true, num_model, axis=-1)
+    acc = 0
+    for i in range(num_model):
+        acc += keras.metrics.categorical_accuracy(y_t[i], y_p[i])
+    return acc / num_model
 
 print('Have Ensemble_Entropy and DPP term')
 model.compile(
     loss=adv_EEDPP,
     optimizer=Adam(lr=lr_schedule(0)),
-    metrics=[acc_metric, Ensemble_Entropy_metric, log_det_metric])
+    metrics=[acc_metric])
 model.summary()
 print(model_type)
 
@@ -191,7 +203,7 @@ else:
     ls = '_labelsmooth' + str(FLAGS.label_smooth)
 # Prepare model model saving directory.
 save_dir = os.path.join(
-    os.getcwd(), 'EE_DPP_saved_models' + str(FLAGS.num_models) + '_lamda' + str(
+    os.getcwd(), 'advtrain'+FLAGS.attack_method+'_EE_DPP_saved_models' + str(FLAGS.num_models) + '_lamda' + str(
         FLAGS.lamda) + '_logdetlamda' + str(FLAGS.log_det_lamda) + '_' + str(
             FLAGS.augmentation) + ls)
 model_name = 'cifar10_%s_model.{epoch:03d}.h5' % model_type

@@ -1,3 +1,10 @@
+# Adv train
+CUDA_VISIBLE_DEVICES=1 nohup python -u cifar10_resnet_EE_DPP_adv.py --attack_method=MadryEtAl --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True > ../advtrainMadryEtAl_cifar10_resnet_EE_DPP_models3_lamda2p0_logdetlamda0p5_True.out 2>&1 &
+CUDA_VISIBLE_DEVICES=0 nohup python -u cifar10_resnet_EE_DPP_adv.py --attack_method=MadryEtAl --lamda=0.0 --log_det_lamda=0.0 --num_models=3 --augmentation=True > ../advtrainMadryEtAl_cifar10_resnet_EE_DPP_models3_lamda0_logdetlamda0_True.out 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 nohup python -u cifar10_resnet_EE_DPP_adv.py --attack_method=FastGradientMethod --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True > ../advtrainFastGradientMethod_cifar10_resnet_EE_DPP_models3_lamda2p0_logdetlamda0p5_True.out 2>&1 &
+CUDA_VISIBLE_DEVICES=0 nohup python -u cifar10_resnet_EE_DPP_adv.py --attack_method=FastGradientMethod --lamda=0.0 --log_det_lamda=0.0 --num_models=3 --augmentation=True > ../advtrainFastGradientMethod_cifar10_resnet_EE_DPP_models3_lamda0_logdetlamda0_True.out 2>&1 &
+
 # jungpu8
 CUDA_VISIBLE_DEVICES=0 nohup python -u cifar10_resnet_EE_DPP.py --lamda=2.0 --log_det_lamda=0.0 --num_models=2 --augmentation=True > ../cifar10_resnet_EE_DPP_models2_lamda2p0_logdetlamda0_True.out 2>&1 &
 
