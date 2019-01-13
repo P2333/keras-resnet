@@ -1,42 +1,104 @@
-# keras-resnet
-[![Build Status](https://travis-ci.org/raghakot/keras-resnet.svg?branch=master)](https://travis-ci.org/raghakot/keras-resnet)
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/raghakot/keras-resnet/blob/master/LICENSE)
+# Improving Adversarial Robustness via Promoting Ensemble Diversity
+## Anonymous Authors
 
-Residual networks implementation using Keras-1.0 functional API, that works with 
-both theano/tensorflow backend and 'th'/'tf' image dim ordering.
+Code for reproducing most of the results of our ICML submission with paper ID:().  
+Improving Adversarial Robustness via Promoting Ensemble Diversity
 
-### The original articles
- * [Deep Residual Learning for Image Recognition](http://arxiv.org/abs/1512.03385) (the 2015 ImageNet competition winner)
- * [Identity Mappings in Deep Residual Networks](http://arxiv.org/abs/1603.05027)
 
-### Residual blocks
-The residual blocks are based on the new improved scheme proposed in [Identity Mappings in Deep Residual Networks](http://arxiv.org/abs/1603.05027) as shown in figure (b)
+## Envoronment settings and libs we used in our experiments
 
-![Residual Block Scheme](images/residual_block.png?raw=true "Residual Block Scheme")
+This project is tested under the following environment setting.
+- OS: Ubuntu 16.04.3
+- GPU: Geforce 1080 Ti or Titan X (Pascal or Maxwell)
+- Cuda: 9.0, Cudnn: v7.03
+- Python: 2.7.12
+- cleverhans: 2.1.0
+- Keras: 2.2.4
+- tensorflow-gpu: 1.9.0
 
-Both bottleneck and basic residual blocks are supported. To switch them, simply provide the block function [here](https://github.com/raghakot/keras-resnet/blob/master/resnet.py#L109)
+Thank the authors of these libs. We also thank the authors of [keras-resnet](https://github.com/raghakot/keras-resnet) for providing their code. Our code is widely adapted from their repositories.
 
-### Code Walkthrough
-The architecture is based on 50 layer sample (snippet from paper)
+In the following, we first provide the code for training our proposed methods and baselines. After that, the evaluation code, such as attacking, is provided.
 
-![Architecture Reference](images/architecture.png?raw=true "Architecture Reference")
+## Training codes.
 
-There are two key aspects to note here
+### Training baselines and ADP.
 
- 1. conv2_1 has stride of (1, 1) while remaining conv layers has stride (2, 2) at the beginning of the block. This fact is expressed in the following [lines](https://github.com/raghakot/keras-resnet/blob/master/resnet.py#L63-L65).
- 2. At the end of the first skip connection of a block, there is a disconnect in num_filters, width and height at the merge layer. This is addressed in [`_shortcut`](https://github.com/raghakot/keras-resnet/blob/master/resnet.py#L41) by using `conv 1X1` with an appropriate stride.
- For remaining cases, input is directly merged with residual block as identity.
+For training on MNIST dataset, 
+```python
+python -u mnist_resnet_EE_DPP.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True 
+```
+where the baseline is implemented with alpha_value = beta_value = 0, and the ADP is implemented with the corresponding value in Table 1.
 
-### ResNetBuilder factory
-- Use ResNetBuilder [build](https://github.com/raghakot/keras-resnet/blob/master/resnet.py#L135-L153) methods to build standard ResNet architectures with your own input shape. It will auto calculate paddings and final pooling layer filters for you.
-- Use the generic [build](https://github.com/raghakot/keras-resnet/blob/master/resnet.py#L99) method to setup your own architecture.
+For CIFAR10 and CIFAR100, the command is similar, with following:
+```python
+# CIFAR10
+python -u cifar10_resnet_EE_DPP.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True
+# CIFAR100
+python -u cifar100_resnet_EE_DPP.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True
+```
 
-### Cifar10 Example
+Using the aboved command, the model used in Tab.1 & 2 & 3 can be reproduced.
 
-Includes cifar10 training example. Achieves ~86% accuracy using Resnet18 model.
+### Adversarial Training w/o ADP
+For adversarial training, we use FGSM and PGD methods to construct adversarial examples.
+The model can be trained using the following commands:
 
-![cifar10_convergence](images/convergence.png?raw=true "Convergence on cifar10")
+```python
+# PGD + ADP
+python -u cifar10_resnet_EE_DPP_adv.py --attack_method=MadryEtAl --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True 
+# PGD without ADP
+python -u cifar10_resnet_EE_DPP_adv.py --attack_method=MadryEtAl --lamda=0.0 --log_det_lamda=0.0 --num_models=3 --augmentation=True  
 
-Note that ResNet18 as implemented doesn't really seem appropriate for CIFAR-10 as the last two residual stages end up 
-as all 1x1 convolutions from downsampling (stride). This is worse for deeper versions. A smaller, modified ResNet-like 
-architecture achieves ~92% accuracy (see [gist](https://gist.github.com/JefferyRPrice/c1ecc3d67068c8d9b3120475baba1d7e)). 
+# FGSM + ADP
+python -u cifar10_resnet_EE_DPP_adv.py --attack_method=FastGradientMethod --lamda=2.0 --log_det_lamda=0.5 --num_models=3 --augmentation=True 
+# FGSM without ADP
+python -u cifar10_resnet_EE_DPP_adv.py --attack_method=FastGradientMethod --lamda=0.0 --log_det_lamda=0.0 --num_models=3 --augmentation=True 
+```
+
+The model used in Tab. 4 can be reproduced.
+
+
+## Evaluation codes.
+
+### Tab.1 
+```bash
+python -u [dataset]_resnet_EE_DPP-eval_nor_acc.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True --epoch=[checkpoint_epoch]
+```
+By substituting the corresponding parameters in the aboved command line, the accuracy can be reproduced in Tab 1.
+The ```checkpoint_epoch``` indicates the corresponding checkpoint file which needs to be tested.
+```dataset``` can be ```mnist, cifar10, cifar100```.
+
+### Tab. 2 & Tab. 3.
+We test our model using both non-iterative attacking methods, including DeepFool, CarliniWagnerL2, ElasticNetMethod, SPSA, LBFGS, JSMA. TODO: most of them are iterative attack methods?
+
+Our model can be tested using the following command:
+```python
+python -u [dataset]_resnet_EE_DPP-adv_ensemble_eval_noniterative.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True --epoch=[checkpoint_epoch] --attack_method=[attack_method]
+```
+
+Note that for JSMA, the attack algorithm provided by cleverhans is not useable. We implement it ourself, which can be used in the following command.
+```python
+python -u [dataset]_resnet_EE_DPP-adv_ensemble_eval_jsma.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True --epoch=[checkpoint_epoch] --attack_method=[attack_method]
+```
+
+For iterative attack methods, our model can be tested using:
+```python
+python -u [dataset]_resnet_EE_DPP-adv_ensemble_eval.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True --epoch=[checkpoint_epoch] --baseline_epoch=[baseline_checkpoint_epoch] --attack_method=[attack_method]
+```
+In this part, ADP and baseline methods are tested together.
+
+### Fig 3.
+
+```python
+# Untarget method:
+python -u cifar10_resnet_EE_DPP-adv_transfer.py --lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True --epoch=[checkpoint_epoch] --baseline_epoch=[baseline_checkpoint_epoch] --attack_method=[attack_method]
+
+python -u cifar10_resnet_EE_DPP-adv_transfer_target.py -lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True --epoch=[checkpoint_epoch] --baseline_epoch=[baseline_checkpoint_epoch] --attack_method=[attack_method]
+```
+For some attack methods, ```--epsilon``` is required to specify the scale for adversarial examples.
+
+### Detect metrics.
+```python 
+python cifar10_resnet_EE_DPP-adveval.py -lamda=[alpha_value] --log_det_lamda=[beta_value] --num_models=3 --augmentation=True --epoch=[checkpoint_epoch] --baseline_epoch=[baseline_checkpoint_epoch] --attack_method=[attack_method]
+```
